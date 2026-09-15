@@ -1,4 +1,4 @@
-"""DeFi Safety Oracle — MCP server (stdio).
+"""DeFi Safety Oracle - MCP server (stdio).
 
 Exposes the oracle's Base + BSC token risk checks as MCP tools so any MCP-speaking agent can call them:
 
@@ -32,7 +32,7 @@ HTTP_TIMEOUT = float(os.environ.get("DSO_TIMEOUT", "60"))
 
 def _headers() -> dict:
     h = {"Accept": "application/json",
-         # Cloudflare 403s some default library UAs on our API hosts — always identify.
+         # Cloudflare 403s some default library UAs on our API hosts - always identify.
          "User-Agent": "cyberwarex-mcp/1.0 (+https://cyberwarex.com)"}
     if X_PAYMENT:
         h["X-PAYMENT"] = X_PAYMENT
