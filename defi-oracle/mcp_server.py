@@ -69,24 +69,66 @@ def _call(path: str, address: str, chain="base") -> str:
         return r.text
 
 
-_ADDR = {"type": "object", "properties": {"address": {"type": "string",
-         "description": "Base or BSC ERC-20 token/contract address (0x…)"},
-         "chain": {"type": "string", "enum": ["base", "bsc"], "default": "base",
-         "description": "Chain to query: base or bsc (default: base)"}},
-         "required": ["address"]}
+_ADDR = {
+    "type": "object",
+    "properties": {
+        "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "The ERC-20 token contract address to evaluate: a 42-character hex string starting with 0x "
+                           "(for example 0x4200000000000000000000000000000000000006). This is the token you are about to "
+                           "buy, approve, or receive.",
+        },
+        "chain": {
+            "type": "string",
+            "enum": ["base", "bsc"],
+            "default": "base",
+            "description": "Which chain the token lives on: 'base' for Base mainnet (the default) or 'bsc' for BNB Smart "
+                           "Chain. It must match the network the address is deployed on.",
+        },
+    },
+    "required": ["address"],
+}
 
 TOOLS = [
-    types.Tool(name="token_safety", inputSchema=_ADDR,
-               description="Full Base + BSC (pass chain=base|bsc) token safety report: honeypot/tax simulation "
-                           "(Aerodrome+Uniswap V3), contract powers, ownership, GoPlus/honeypot.is cross-check. Returns grade "
-                           "A–F, risk_score, is_honeypot, tradeable, and flags with on-chain evidence. Call BEFORE trading "
-                           "a token."),
-    types.Tool(name="honeypot_check", inputSchema=_ADDR,
-               description="Focused honeypot check: live buy-then-sell simulation on Base + BSC (pass chain=base|bsc) — "
-                           "is_honeypot, buy/sell success, round-trip loss."),
-    types.Tool(name="contract_risk", inputSchema=_ADDR,
-               description="Contract-level risk on Base + BSC (pass chain=base|bsc): verified source, upgradeable proxy + "
-                           "admin, ownership/renounce, mint/pause/blacklist/fee powers."),
+    types.Tool(
+        name="token_safety",
+        inputSchema=_ADDR,
+        description=(
+            "Decide whether an ERC-20 token is safe to trade before committing funds. Runs a live buy-then-sell "
+            "simulation (Aerodrome and Uniswap V3) plus contract-power and ownership analysis and a GoPlus and "
+            "honeypot.is cross-check, then returns a single verdict. "
+            "Use it when an agent is about to swap into, approve, or accept a token it has not vetted. "
+            "Returns JSON with: grade (A to F), risk_score (0-100), is_honeypot (boolean), tradeable (boolean), and a "
+            "flags array where each flag carries on-chain evidence. Read-only: no wallet, key, or signature needed; a "
+            "cold simulation can take a few seconds. Paid per call in USDC on Base via x402."
+        ),
+    ),
+    types.Tool(
+        name="honeypot_check",
+        inputSchema=_ADDR,
+        description=(
+            "Answer one focused question: can this token actually be sold after it is bought? Executes a real "
+            "buy-then-sell round trip as a simulated transaction on Base or BSC. "
+            "Use it when you only need the honeypot yes-or-no, not the full safety report. "
+            "Returns JSON with: is_honeypot (boolean), buy_success (boolean), sell_success (boolean), and "
+            "round_trip_loss_percent (the tax or slippage lost across the round trip). Read-only: no wallet needed. "
+            "Paid per call in USDC on Base via x402."
+        ),
+    ),
+    types.Tool(
+        name="contract_risk",
+        inputSchema=_ADDR,
+        description=(
+            "Inspect what the team behind a token contract is able to do to holders, without running a trade "
+            "simulation. Reports verified-source status, whether the contract is an upgradeable proxy and who its admin "
+            "is, whether ownership is renounced, and which dangerous powers exist (mint, pause, blacklist, and mutable "
+            "fees). "
+            "Use it when you want the governance and rug-vector picture rather than the tradeability verdict. "
+            "Returns JSON with each power as a boolean plus the resolved owner and admin addresses. Read-only. "
+            "Paid per call in USDC on Base via x402."
+        ),
+    ),
 ]
 
 
