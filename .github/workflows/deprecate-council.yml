@@ -1,0 +1,35 @@
+name: Deprecate Agent Council in MCP Registry
+
+# Agent Council was retired on 2026-11-04 (operator order). This marks every version of
+# io.github.cyberwareX/cyberwarex-council as deprecated in the official MCP registry, using the same
+# GitHub OIDC login the old publish-council.yml used (this org owns the io.github.cyberwareX namespace).
+# Deprecated, not deleted: reversible with --status active if the service ever comes back.
+#
+# Trigger: git tag council-deprecate-1 && git push cwx council-deprecate-1  (or run it by hand)
+
+on:
+  push:
+    tags: ["council-deprecate-*"]
+  workflow_dispatch:
+
+jobs:
+  deprecate:
+    if: github.repository_owner == 'cyberwareX'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write   # OIDC for mcp-publisher (proves the io.github.<owner> namespace)
+      contents: read
+    steps:
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Mark all versions deprecated
+        run: |
+          ./mcp-publisher status --status deprecated --all-versions --yes \
+            --message "Retired 2026-11-04: the Agent Council service is shut down. See https://cyberwarex.com for live CyberWareX tools." \
+            io.github.cyberwareX/cyberwarex-council
