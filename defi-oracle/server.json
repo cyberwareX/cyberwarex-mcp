@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CyberPunk11147/cyberwarex-defi-oracle",
-  "description": "Token safety: honeypot sim, contract powers, rug checks, watch alerts, plain card, paper test.",
+  "title": "Token safety: honeypot and rug pull check",
+  "description": "Stops your agent buying a coin it cannot sell: honeypot test, rug checks and an A-F risk grade.",
   "version": "1.5.0",
   "repository": {
     "url": "https://github.com/CyberPunk11147/cyberwarex-mcp",

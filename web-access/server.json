@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CyberPunk11147/cyberwarex-web-access",
-  "description": "Web access for agents: fetch, extract, screenshot, or PDF any public URL.",
+  "title": "Web reader and Telegram search for agents",
+  "description": "Read any web page and search public Telegram channels, groups and bots. No API key, pay per call.",
   "version": "1.0.0",
   "repository": {
     "url": "https://github.com/CyberPunk11147/cyberwarex-mcp",

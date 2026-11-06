@@ -1,0 +1,35 @@
+name: Deprecate Voice STT in MCP Registry
+
+# The voice-to-text service (voice.cyberwarex.com) was retired on 2026-10-18 and answers 410.
+# This marks every version of io.github.CyberPunk11147/cyberwarex-voice-stt as deprecated in the
+# official MCP registry, with the same GitHub OIDC login publish-mcp.yml uses (this repo owns the
+# io.github.CyberPunk11147 namespace). Deprecated, not deleted: reversible with --status active.
+#
+# Trigger: git tag voice-deprecate-1 && git push origin voice-deprecate-1  (or run it by hand)
+
+on:
+  push:
+    tags: ["voice-deprecate-*"]
+  workflow_dispatch:
+
+jobs:
+  deprecate:
+    if: github.repository_owner == 'CyberPunk11147'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write   # OIDC for mcp-publisher (proves the io.github.<owner> namespace)
+      contents: read
+    steps:
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Mark all versions deprecated
+        run: |
+          ./mcp-publisher status --status deprecated --all-versions --yes \
+            --message "Retired 2026-10-18: the voice-to-text service is shut down. See https://cyberwarex.com for live CyberWareX tools." \
+            io.github.CyberPunk11147/cyberwarex-voice-stt

@@ -1,18 +1,17 @@
 """CyberWareX Wallet Safety — MCP server (stdio).
 
-Pre-sign / pre-pay safety toolkit for wallet, trading and payment agents. Six tools, six live
+Pre-sign / pre-pay safety toolkit for wallet, trading and payment agents. Five tools, three live
 x402 services (USDC on Base, no account, no API key):
 
     simulate_transaction(chain, to, data, value, from)  -> decode + danger flags + eth_call would-succeed preview
     decode_calldata(data, to)                           -> named function + args + risk flags (no simulation, cheaper)
     decode_signature_request(typed_data | message)      -> EIP-712 / personal_sign -> plain summary + drainer flags
     address_risk(address, chain, deep)                  -> OFAC sanctions + taint (+ scam-deployer ledger) -> BLOCK/REVIEW/ALLOW
-    contract_abi(address, chain)                        -> verified ABI + function/event signatures + proxy detection
     url_safety(url)                                     -> phishing-risk score -> SAFE/SUSPICIOUS/DANGEROUS + reasons
 
 Thin, stateless proxy to the HTTP services. Payment model: every service is x402-gated. This server
 forwards an X-PAYMENT header when the caller provides one via CWX_X_PAYMENT, and otherwise opts into
-each service's free trial (3 calls/day per IP) so an evaluator's first calls return real data; once the
+each service's free trial where it has one so an evaluator's first calls return real data; once the
 trial is spent the 402 invoice is surfaced back to the agent so ITS x402 client can pay and retry.
 The server holds no keys.
 
@@ -33,9 +32,7 @@ X_PAYMENT = os.environ.get("CWX_X_PAYMENT", "").strip()
 HTTP_TIMEOUT = float(os.environ.get("CWX_TIMEOUT", "60"))
 URLS = {
     "simulate": (os.environ.get("CWX_SIMULATE_URL") or "https://simulate.cyberwarex.com").rstrip("/"),
-    "sign": (os.environ.get("CWX_SIGN_URL") or "https://sign.cyberwarex.com").rstrip("/"),
     "sanctions": (os.environ.get("CWX_SANCTIONS_URL") or "https://sanctions.cyberwarex.com").rstrip("/"),
-    "abi": (os.environ.get("CWX_ABI_URL") or "https://abi.cyberwarex.com").rstrip("/"),
     "safe": (os.environ.get("CWX_SAFE_URL") or "https://safe.cyberwarex.com").rstrip("/"),
 }
 CHAINS6 = ["base", "bsc", "ethereum", "polygon", "arbitrum", "optimism"]
@@ -123,14 +120,6 @@ TOOLS = [
                      "description": "true = full risk report incl. scam-deployer ledger (/risk); false = sanctions + taint screen only (/screen, cheaper)"}},
             "required": ["address"]}),
     types.Tool(
-        name="contract_abi",
-        description="Fetch a verified contract's ABI keylessly (from Sourcify): full ABI, function and event "
-                    "signatures/selectors, contract name and proxy detection (implementation address). Use it to "
-                    "encode calls or to understand what a contract can do.",
-        inputSchema={"type": "object", "properties": {
-            "address": {"type": "string", "description": "Contract address (0x…)"},
-            "chain": _chain_prop()}, "required": ["address"]}),
-    types.Tool(
         name="url_safety",
         description="Score a URL for phishing risk before an agent opens, trusts or sends funds through it: "
                     "typosquats of known brands, homoglyph/punycode domains, credentials in the URL, raw IP hosts, "
@@ -152,12 +141,10 @@ def _dispatch(name: str, args: dict) -> str:
         td = a.get("typed_data")
         if isinstance(td, (dict, list)):
             td = json.dumps(td)
-        return _get("sign", "/decode", {"typed_data": td, "message": a.get("message")})
+        return _get("simulate", "/safe-to-sign", {"typed_data": td, "message": a.get("message")})
     if name == "address_risk":
         path = "/risk" if a.get("deep") else "/screen"
         return _get("sanctions", path, {"address": a.get("address"), "chain": a.get("chain", "base")})
-    if name == "contract_abi":
-        return _get("abi", "/abi", {"address": a.get("address"), "chain": a.get("chain", "base")})
     if name == "url_safety":
         return _get("safe", "/check", {"url": a.get("url")})
     return json.dumps({"error": f"unknown tool: {name}"})

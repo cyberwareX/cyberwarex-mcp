@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CyberPunk11147/cyberwarex-wallet-safety",
-  "description": "Pre-sign wallet safety: tx simulation, signature decoding, address risk, ABI, URL phishing.",
+  "title": "Check before you sign: tx and signature safety",
+  "description": "See what a transaction or signature will do before your agent signs it, plus address and link risk.",
   "version": "1.0.0",
   "repository": {
     "url": "https://github.com/CyberPunk11147/cyberwarex-mcp",

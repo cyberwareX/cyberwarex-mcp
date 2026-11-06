@@ -1,12 +1,17 @@
 """Agent Web-Access — MCP server (stdio).
 
-Exposes the four web-access capabilities as MCP tools so any MCP-speaking agent
+Exposes the web-access capabilities as MCP tools so any MCP-speaking agent
 (Claude Desktop, Bedrock AgentCore, Cursor, etc.) can call them:
 
     web_fetch(url, format)       -> rendered page as markdown/text/html
     web_extract(url, selector)   -> elements matching a CSS selector
     web_screenshot(url, ...)     -> PNG (base64)
     web_pdf(url)                 -> PDF (base64)
+    telegram_search(q)           -> public Telegram channels, groups and bots for a topic
+    telegram_lookup(name, ...)   -> one public @name: type, members, bio, latest posts
+    telegram_check(name)         -> alive, quiet, dead or looks inflated
+    social_profile(...)          -> public X, TikTok, Instagram, Facebook or LinkedIn profile
+    company_profile(domain)      -> company card from RDAP, DNS and the homepage
 
 It is a thin, stateless proxy to the HTTP service (default https://web.cyberwarex.com,
 override with AWA_BASE_URL — set this to the public funnel URL for remote agents).
@@ -82,8 +87,8 @@ def _call(path: str, params: dict) -> str:
 TOOLS = [
     types.Tool(
         name="web_fetch",
-        description="Render a live web page (JavaScript executed) and return clean "
-                    "content. Use this to read pages an LLM can't reach natively.",
+        description="Read any public web page, JavaScript sites included, as clean "
+                    "markdown, text or html. $0.001 a page.",
         inputSchema={
             "type": "object",
             "properties": {
@@ -96,8 +101,8 @@ TOOLS = [
     ),
     types.Tool(
         name="web_extract",
-        description="Return text + attributes of elements matching a CSS selector on a "
-                    "fully rendered page.",
+        description="Pull just the parts you need from a rendered page: text and "
+                    "attributes of every element matching a CSS selector. $0.001.",
         inputSchema={
             "type": "object",
             "properties": {
@@ -129,6 +134,69 @@ TOOLS = [
             "required": ["url"],
         },
     ),
+    types.Tool(
+        name="telegram_search",
+        description="Find public Telegram channels, groups and bots for a topic, with "
+                    "member counts and links. No Telegram account needed. $0.01 a search.",
+        inputSchema={
+            "type": "object",
+            "properties": {"q": {"type": "string",
+                                 "description": "Topic words, e.g. solana developers"}},
+            "required": ["q"],
+        },
+    ),
+    types.Tool(
+        name="telegram_lookup",
+        description="Look up one public Telegram @name: channel, group, bot or user, "
+                    "members, bio, and optionally its latest public posts or a word "
+                    "search inside them. $0.005.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Public @name or https://t.me/name"},
+                "posts": {"type": "boolean", "default": False,
+                          "description": "Also return the latest public channel posts"},
+                "q": {"type": "string", "description": "Search words inside the channel's public posts"},
+            },
+            "required": ["name"],
+        },
+    ),
+    types.Tool(
+        name="telegram_check",
+        description="Before you join, post in or pay a Telegram channel: is it alive, "
+                    "quiet, dead or does it look inflated, from its public numbers. $0.01.",
+        inputSchema={
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "Public @name or https://t.me/name"}},
+            "required": ["name"],
+        },
+    ),
+    types.Tool(
+        name="social_profile",
+        description="Public profile fields (name, bio, followers, links) from an X, TikTok, "
+                    "Instagram, Facebook or LinkedIn page, logged out. Give a url, or a "
+                    "handle or name plus platform. $0.005.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Profile link, e.g. https://x.com/vercel"},
+                "handle": {"type": "string", "description": "Profile name instead of url (needs platform)"},
+                "q": {"type": "string", "description": "Person or brand name to find by search (needs platform)"},
+                "platform": {"type": "string",
+                             "enum": ["x", "tiktok", "instagram", "facebook", "linkedin"]},
+            },
+        },
+    ),
+    types.Tool(
+        name="company_profile",
+        description="Who is behind a domain: company card from public RDAP, DNS and the "
+                    "homepage (owner, age, mail setup, socials). $0.005.",
+        inputSchema={
+            "type": "object",
+            "properties": {"domain": {"type": "string", "description": "Domain or URL, e.g. stripe.com"}},
+            "required": ["domain"],
+        },
+    ),
 ]
 
 
@@ -146,6 +214,22 @@ def _dispatch(name: str, args: dict) -> str:
                                      "width": args.get("width", 1280)})
     if name == "web_pdf":
         return _call("/pdf", {"url": args.get("url")})
+    if name == "telegram_search":
+        return _call("/telegram/search", {"q": args.get("q")})
+    if name == "telegram_lookup":
+        params = {"name": args.get("name")}
+        if args.get("posts"):
+            params["posts"] = "1"
+        if args.get("q"):
+            params["q"] = args.get("q")
+        return _call("/telegram", params)
+    if name == "telegram_check":
+        return _call("/telegram/check", {"name": args.get("name")})
+    if name == "social_profile":
+        return _call("/social", {k: args.get(k) for k in ("url", "handle", "q", "platform")
+                                 if args.get(k)})
+    if name == "company_profile":
+        return _call("/company", {"domain": args.get("domain")})
     return json.dumps({"error": f"unknown tool: {name}"})
 
 

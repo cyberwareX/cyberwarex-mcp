@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CyberPunk11147/cyberwarex-chain-data",
-  "description": "EVM onchain data: wallet, token, price, gas, transactions, ENS across 5 chains.",
+  "title": "Wallet and token data on 5 EVM chains",
+  "description": "Wallet balances, token prices, gas, decoded transactions and ENS on 5 EVM chains. No RPC key.",
   "version": "1.0.0",
   "repository": {
     "url": "https://github.com/CyberPunk11147/cyberwarex-mcp",

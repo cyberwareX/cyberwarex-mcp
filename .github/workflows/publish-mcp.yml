@@ -30,7 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [defi-oracle, chain-data, voice-stt, web-access, wallet-safety]
+        server: [defi-oracle, chain-data, web-access, wallet-safety]
+        # voice-stt left the matrix 2026-11-06: the service was retired 2026-10-18 (deprecate-voice.yml)
         # council is NOT here: it is published from the cyberwareX repo under the
         # io.github.cyberwareX/* namespace by publish-council.yml, because that is the
         # namespace this org's OIDC actually owns. One server, one publishing owner.
